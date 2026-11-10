@@ -1,0 +1,8 @@
+# 팀 코딩 규칙: 줄바꿈은 LF로 통일 (Windows·Mac 혼용 시 불필요한 diff 방지)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+*.docx binary
+*.xlsx binary
+*.pdf binary

@@ -1,5 +1,6 @@
 """DB 엔진/세션 (persistence 계층)."""
 from collections.abc import Iterator
+from typing import Any
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -16,7 +17,7 @@ engine = create_engine(
 
 if _is_sqlite:
     @event.listens_for(engine, "connect")
-    def _enable_fk(dbapi_conn, _record):
+    def _enable_fk(dbapi_conn: Any, _record: Any) -> None:
         cur = dbapi_conn.cursor()
         cur.execute("PRAGMA foreign_keys=ON")
         cur.close()

@@ -6,14 +6,18 @@ from sqlalchemy.orm import Session
 from app.business.analyzers.llm_analyzer import LLMSentimentAnalyzer
 from app.business.analyzers.rule_based_analyzer import RuleBasedSentimentAnalyzer
 from app.business.analyzers.topic_classifier import TopicClassifier
-from app.business.pipeline.base import FeedbackContext, Pipeline, PipelineAbort
+from app.business.pipeline.base import FeedbackContext, Pipeline, PipelineAbortError
 from app.business.pipeline.filters import (
-    CleansingFilter, PriorityFilter, SentimentFilter, TopicFilter, ValidationFilter,
+    CleansingFilter,
+    PriorityFilter,
+    SentimentFilter,
+    TopicFilter,
+    ValidationFilter,
 )
 from app.business.priority.calculator import PriorityCalculator
 from app.infra.ai_client import AIClient, ExternalLLMAdapter
 from app.persistence.database import SessionLocal
-from app.persistence.models import FeedbackTopic
+from app.persistence.models import Feedback, FeedbackTopic
 from app.persistence.repositories import FeedbackRepository, GradeWeightRepository, TopicRepository
 
 log = logging.getLogger(__name__)
@@ -42,7 +46,7 @@ class AnalysisService:
             return None
         try:
             ctx = (pipeline or self.build_pipeline()).run(FeedbackContext(feedback=fb))
-        except PipelineAbort as e:
+        except PipelineAbortError as e:
             log.warning("피드백 %s 분석 중단: %s", feedback_id, e)
             return None
         self._save(fb, ctx)
@@ -53,7 +57,7 @@ class AnalysisService:
         pipeline = self.build_pipeline()
         return sum(1 for fid in feedback_ids if self.analyze(fid, pipeline) is not None)
 
-    def _save(self, fb, ctx: FeedbackContext) -> None:
+    def _save(self, fb: Feedback, ctx: FeedbackContext) -> None:
         # 재분석 시 기존 결과 제거 후 저장 (PK 충돌 방지를 위해 flush)
         if fb.sentiment is not None or fb.priority is not None or fb.topic_links:
             fb.sentiment = None

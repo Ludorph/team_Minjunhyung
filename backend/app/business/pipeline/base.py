@@ -20,7 +20,7 @@ class FeedbackContext:
     notes: list[str] = field(default_factory=list)  # 대체 분석 등 처리 기록
 
 
-class PipelineAbort(Exception):
+class PipelineAbortError(Exception):
     """필터가 처리를 중단시킬 때(예: 검증 실패)."""
 
 

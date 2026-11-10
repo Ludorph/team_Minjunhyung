@@ -4,7 +4,7 @@ import re
 
 from app.business.analyzers.base import SentimentAnalyzer
 from app.business.analyzers.topic_classifier import TopicClassifier
-from app.business.pipeline.base import Filter, FeedbackContext, PipelineAbort
+from app.business.pipeline.base import FeedbackContext, Filter, PipelineAbortError
 from app.business.priority.calculator import PriorityCalculator
 from app.business.priority.decorators import decorate
 from app.persistence.models import SentimentLabel
@@ -21,9 +21,9 @@ class ValidationFilter(Filter):
     def process(self, ctx: FeedbackContext) -> FeedbackContext:
         content = (ctx.feedback.content or "").strip()
         if not content:
-            raise PipelineAbort("내용이 비어 있습니다.")
+            raise PipelineAbortError("내용이 비어 있습니다.")
         if len(content) > self.max_length:
-            raise PipelineAbort(f"내용이 너무 깁니다({len(content)}자).")
+            raise PipelineAbortError(f"내용이 너무 깁니다({len(content)}자).")
         return ctx
 
 
