@@ -1,0 +1,24 @@
+@startuml
+title [물리 관점] 배포 다이어그램
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+
+node "사용자 PC" {
+  node "웹 브라우저" {
+    artifact "React SPA (정적 빌드)" as spa
+  }
+}
+
+node "애플리케이션 서버 (시연: 개발자 PC / Docker)" {
+  node "Uvicorn (ASGI)" {
+    artifact "FastAPI 앱" as app
+  }
+  database "SQLite 파일\n(feedbackcare.db)" as db
+}
+
+cloud "외부 생성형 AI API\n(HTTPS)" as ai
+
+spa -- app : HTTP :8000\nREST/JSON
+app -- db : SQLAlchemy
+app -- ai : HTTPS\n(API Key: 환경변수)
+@enduml

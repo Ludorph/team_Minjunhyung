@@ -1,0 +1,45 @@
+@startuml
+title 시스템 아키텍처 개요 (Client-Server + 3계층 + 분석부 Pipe-Filter)
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+skinparam componentStyle rectangle
+skinparam nodesep 30
+skinparam ranksep 45
+
+package "Presentation 계층" #E8F1FB {
+  [React SPA\n(대시보드·목록·상세·업로드)] as SPA
+  [REST API Router\n(FastAPI)] as API
+  SPA -right-> API : HTTP/JSON
+}
+
+package "Business Logic 계층" #EAF6EA {
+  [FeedbackService · ResponseService · DashboardService] as SVC
+  [AnalysisService] as AS
+  package "분석 파이프라인 (Pipe-Filter)" #FFFFFF {
+    [Validation\nFilter] as F1
+    [Cleansing\nFilter] as F2
+    [Sentiment\nFilter] as F3
+    [Topic\nFilter] as F4
+    [Priority\nFilter] as F5
+    F1 -right-> F2 : pipe
+    F2 -right-> F3 : pipe
+    F3 -right-> F4 : pipe
+    F4 -right-> F5 : pipe
+  }
+  SVC -right-> AS : 저장 후 분석 요청(비동기)
+  AS -down-> F1 : run()
+}
+
+package "Persistence 계층" #FBF1E6 {
+  [Repository (SQLAlchemy)] as REPO
+  database "SQLite (→ PostgreSQL)" as DB
+  REPO -right-> DB
+}
+
+cloud "외부 생성형 AI API" as LLM
+
+API -down-> SVC
+SVC -down-> REPO
+F5 -down-> REPO : 결과 저장
+F3 .right.> LLM : AIClient(Adapter)
+@enduml

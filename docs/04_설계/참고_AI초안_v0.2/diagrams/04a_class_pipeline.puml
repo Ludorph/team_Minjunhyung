@@ -1,0 +1,81 @@
+@startuml
+title [논리 관점] 클래스 다이어그램 ② 분석 파이프라인 (Pipe-Filter · Strategy · Adapter)
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+skinparam nodesep 30
+skinparam ranksep 55
+
+class AnalysisService {
+  + analyze(feedbackId : int) : void
+}
+class Pipeline {
+  - filters : List<Filter>
+  + run(ctx : FeedbackContext) : FeedbackContext
+}
+interface Filter <<interface>> {
+  + process(ctx : FeedbackContext) : FeedbackContext
+}
+class FeedbackContext {
+  + feedback : Feedback
+  + cleanText : str
+  + sentiment : SentimentResult
+  + topics : List<str>
+  + priority : PriorityScore
+}
+class ValidationFilter
+class CleansingFilter
+class SentimentFilter {
+  - primary : SentimentAnalyzer
+  - fallback : SentimentAnalyzer
+}
+class TopicFilter
+class PriorityFilter {
+  - calculator : PriorityCalculator
+}
+class PriorityCalculator {
+  - gradeWeights : Dict<str, float>
+  - rule : PriorityRule
+  + calculate(neg : float, grade : str, hours : float) : PriorityScore
+}
+interface PriorityRule <<interface>> {
+  + compute(neg : float, gw : float, tw : float) : float
+}
+class WeightedProductRule
+class WeightedSumRule
+
+interface SentimentAnalyzer <<interface>> {
+  + analyze(text : str) : SentimentResult
+}
+class LLMSentimentAnalyzer
+class RuleBasedSentimentAnalyzer {
+  - lexicon : Dict<str, float>
+}
+interface AIClient <<interface>> {
+  + complete(prompt : str) : str
+}
+class ExternalLLMAdapter {
+  - apiKey : str
+  - timeoutSec : int
+}
+
+AnalysisService --> Pipeline
+AnalysisService ..> FeedbackContext : <<create>>
+Pipeline o-- "1..*" Filter
+Filter ..> FeedbackContext
+Filter <|.. ValidationFilter
+Filter <|.. CleansingFilter
+Filter <|.. SentimentFilter
+Filter <|.. TopicFilter
+Filter <|.. PriorityFilter
+PriorityFilter --> PriorityCalculator
+PriorityCalculator --> PriorityRule
+PriorityRule <|.. WeightedProductRule
+PriorityRule <|.. WeightedSumRule
+
+SentimentFilter --> "2" SentimentAnalyzer
+SentimentAnalyzer <|.. LLMSentimentAnalyzer
+SentimentAnalyzer <|.. RuleBasedSentimentAnalyzer
+LLMSentimentAnalyzer --> AIClient
+AIClient <|.. ExternalLLMAdapter
+@enduml
