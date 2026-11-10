@@ -18,6 +18,12 @@
 작업을 끝내기 전에 위 검사 4개(테스트, ruff, lint, build)를 모두 통과시킨다.
 DB는 `backend/feedbackcare.db`(SQLite, 커밋 금지). 테이블 구조를 바꿨으면 이 파일을 지우고 재시작하면 시드(계정·등급 가중치·주제)와 함께 다시 만들어진다.
 
+## 배포
+
+- 공개 데모는 `Dockerfile`(React 빌드 + FastAPI가 화면·API를 함께 제공) + `render.yaml`(Render, main push 시 자동 재배포). 자세한 절차는 README 7장.
+- 배포 환경은 `FEEDBACKCARE_DEMO_DATA=1`로 빈 DB에 가상 피드백 20건을 자동 적재한다 (`business/services/demo_data.py`).
+- `app/main.py`에서 화면 연결(`app.mount("/")`)은 반드시 모든 API 라우트 등록 뒤에 둔다.
+
 ## 아키텍처 규칙
 
 - 3계층: `backend/app/presentation`(routers·schemas) → `business/services` → `business/{pipeline, analyzers, priority, response, state}` → `persistence`(models·repositories). `infra`는 AI 클라이언트·설정·보안.

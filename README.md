@@ -135,3 +135,33 @@ npm run build    # dist/ 생성
 2. CSV 업로드 화면에서 `data/sample_feedback.csv` 업로드 → 목록에서 우선순위·긴급/VIP 태그 확인
 3. 상세 화면에서 초안 생성 → 확정 → 상태 변경(처리 시작 → 완료)
 4. `admin1` 로 로그인하면 정확도 검증(S07) 메뉴에서 정답 라벨 입력·일치율 확인
+
+## 7. 공개 배포 (외부 사용자가 링크로 접속)
+
+배포 서버는 컨테이너 하나로 동작한다. `Dockerfile`이 React 화면을 빌드하고, FastAPI 서버가 API(`/api`)와 빌드된 화면(`/`)을 함께 제공한다. 그래서 주소 하나로 화면과 API를 모두 쓴다.
+
+| 파일 | 역할 |
+|---|---|
+| `Dockerfile` | 1단계 React 빌드 → 2단계 Python 3.12 + FastAPI, `PORT` 환경변수로 실행 |
+| `render.yaml` | Render 배포 설정 (무료 플랜, main 브랜치 push 시 자동 재배포, 상태 확인 `/api/health`) |
+| `.dockerignore` | 가상환경·node_modules·DB·.env·docs 제외 |
+
+환경변수
+- `FEEDBACKCARE_DEMO_DATA=1`: DB가 비어 있으면 `data/sample_feedback.csv` 20건을 넣고 분석한다. 작성일은 적재 시각 기준 최근으로 옮겨 우선순위의 시간 가중치가 자연스럽게 나온다.
+- `FEEDBACKCARE_AI_API_KEY`: 생성형 AI 연동 후 배포 서비스 대시보드에서 직접 입력한다 (저장소에 넣지 않는다).
+
+Render로 배포하는 순서
+1. https://render.com 에 GitHub 계정으로 가입·로그인한다.
+2. **New → Blueprint** → 저장소 `team_Minjunhyung` 연결 → `render.yaml`을 읽어 서비스 `feedbackcare`가 만들어진다 → **Apply**.
+3. 빌드가 끝나면 `https://feedbackcare-xxxx.onrender.com` 형태의 주소가 생긴다. 이 주소가 외부 공개 링크다.
+
+주의
+- 무료 플랜은 15분 동안 접속이 없으면 잠들고, 다음 접속 때 깨어나는 데 30초~1분이 걸린다. 시연 직전에 한 번 열어 둔다.
+- 무료 플랜의 SQLite 파일은 재배포·재시작 때 초기화된다. 시연 데이터는 재시작할 때마다 데모 데이터로 다시 채워진다.
+- 공개 주소에서는 누구나 테스트 계정(`seed.py`)으로 로그인할 수 있다. 실제 개인정보는 절대 넣지 않는다 (가상 데이터만).
+
+로컬에서 배포 구성 확인 (서버 하나로 화면+API)
+```bash
+cd frontend && npm run build && cd ../backend
+FEEDBACKCARE_DEMO_DATA=1 .venv/Scripts/python -m uvicorn app.main:app --port 8001   # http://localhost:8001
+```

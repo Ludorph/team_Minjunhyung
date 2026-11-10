@@ -13,6 +13,9 @@ class Settings:
     ai_api_key: str | None
     ai_endpoint: str | None
     ai_timeout: float
+    demo_data: bool  # 배포 시연용: DB가 비어 있으면 가상 피드백을 자동 적재
+    frontend_dist: Path  # 빌드된 React 화면 폴더 (있으면 백엔드가 함께 제공)
+    data_dir: Path
 
 
 def get_settings() -> Settings:
@@ -21,4 +24,7 @@ def get_settings() -> Settings:
         ai_api_key=os.getenv("FEEDBACKCARE_AI_API_KEY") or None,
         ai_endpoint=os.getenv("FEEDBACKCARE_AI_ENDPOINT") or None,
         ai_timeout=float(os.getenv("FEEDBACKCARE_AI_TIMEOUT", "5")),
+        demo_data=os.getenv("FEEDBACKCARE_DEMO_DATA", "").lower() in ("1", "true", "yes"),
+        frontend_dist=Path(os.getenv("FEEDBACKCARE_FRONTEND_DIST", str(BASE_DIR.parent / "frontend" / "dist"))),
+        data_dir=BASE_DIR.parent / "data",
     )
