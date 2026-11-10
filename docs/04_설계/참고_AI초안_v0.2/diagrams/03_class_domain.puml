@@ -1,0 +1,94 @@
+@startuml
+title [논리 관점] 클래스 다이어그램 ① 도메인 모델
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+skinparam nodesep 45
+skinparam ranksep 55
+
+enum Role {
+  AGENT
+  ADMIN
+}
+enum CustomerGrade {
+  VIP
+  REGULAR
+  NEW
+}
+enum SentimentLabel {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+class User {
+  - id : int
+  - loginId : str
+  - name : str
+  - role : Role
+}
+class Customer {
+  - id : int
+  - name : str
+  - grade : CustomerGrade
+}
+class Feedback {
+  - id : int
+  - content : str
+  - source : str
+  - writtenAt : datetime
+  - state : FeedbackState
+  + start(user : User) : void
+  + complete(user : User) : void
+  + reopen(user : User) : void
+  + elapsedHours(now : datetime) : float
+}
+class SentimentResult {
+  - label : SentimentLabel
+  - intensity : float
+  - confidence : float
+  - analyzer : str
+}
+class Topic {
+  - id : int
+  - name : str
+}
+class PriorityScore {
+  - score : float
+  - negIntensity : float
+  - gradeWeight : float
+  - timeWeight : float
+  - urgent : bool
+}
+class ResponseDraft {
+  - strategy : str
+  - draftContent : str
+  - finalContent : str
+  - confirmed : bool
+  + edit(text : str) : void
+  + confirm(user : User) : void
+}
+class StatusHistory {
+  - fromStatus : str
+  - toStatus : str
+  - changedAt : datetime
+}
+class UploadBatch {
+  - fileName : str
+  - totalRows : int
+  - errorRows : int
+}
+
+Customer "1" -- "0..*" Feedback : 작성 >
+UploadBatch "0..1" o-- "0..*" Feedback : 일괄 등록 >
+Feedback "1" *-- "0..1" SentimentResult
+Feedback "1" *-- "0..1" PriorityScore
+Feedback "1" *-- "0..*" StatusHistory
+Feedback "1" *-- "0..*" ResponseDraft
+Feedback "0..*" -- "1..*" Topic : 분류 >
+ResponseDraft "0..*" --> "0..1" User : 확정자 >
+StatusHistory "0..*" --> "1" User : 변경자 >
+User ..> Role
+Customer ..> CustomerGrade
+SentimentResult ..> SentimentLabel
+@enduml

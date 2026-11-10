@@ -1,0 +1,124 @@
+@startuml
+title ERD (논리 모델, IE 표기)
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+skinparam linetype ortho
+hide circle
+skinparam nodesep 40
+skinparam ranksep 50
+
+entity "users" as users {
+  * id : INTEGER <<PK>>
+  --
+  * login_id : VARCHAR(50) <<UK>>
+  * password_hash : VARCHAR(255)
+  * name : VARCHAR(50)
+  * role : VARCHAR(10)  -- AGENT/ADMIN
+  * created_at : DATETIME
+}
+entity "customers" as customers {
+  * id : INTEGER <<PK>>
+  --
+  * name : VARCHAR(50)
+  * grade : VARCHAR(10) <<FK>>
+  * created_at : DATETIME
+}
+entity "grade_weights" as gw {
+  * grade : VARCHAR(10) <<PK>>
+  --
+  * weight : DECIMAL(3,2)
+}
+entity "upload_batches" as ub {
+  * id : INTEGER <<PK>>
+  --
+  * file_name : VARCHAR(255)
+  * total_rows : INTEGER
+  * error_rows : INTEGER
+  * uploaded_by : INTEGER <<FK>>
+  * uploaded_at : DATETIME
+}
+entity "feedbacks" as fb {
+  * id : INTEGER <<PK>>
+  --
+  customer_id : INTEGER <<FK>>
+  batch_id : INTEGER <<FK>>
+  * content : TEXT
+  * source : VARCHAR(10)  -- REVIEW/CONSULT/EMAIL
+  * written_at : DATETIME
+  * status : VARCHAR(12)  -- PENDING/IN_PROGRESS/DONE
+  * created_at : DATETIME
+}
+entity "sentiment_results" as sr {
+  * feedback_id : INTEGER <<PK,FK>>
+  --
+  * label : VARCHAR(10)
+  * intensity : DECIMAL(3,2)
+  * confidence : DECIMAL(3,2)
+  * analyzer : VARCHAR(10)  -- LLM/RULE
+  * analyzed_at : DATETIME
+}
+entity "topics" as tp {
+  * id : INTEGER <<PK>>
+  --
+  * name : VARCHAR(20) <<UK>>
+}
+entity "feedback_topics" as ft {
+  * feedback_id : INTEGER <<PK,FK>>
+  * topic_id : INTEGER <<PK,FK>>
+  --
+  score : DECIMAL(3,2)
+}
+entity "priority_scores" as ps {
+  * feedback_id : INTEGER <<PK,FK>>
+  --
+  * score : DECIMAL(5,2)
+  * neg_intensity : DECIMAL(3,2)
+  * grade_weight : DECIMAL(3,2)
+  * time_weight : DECIMAL(3,2)
+  * is_urgent : BOOLEAN
+  * calculated_at : DATETIME
+}
+entity "response_drafts" as rd {
+  * id : INTEGER <<PK>>
+  --
+  * feedback_id : INTEGER <<FK>>
+  * strategy : VARCHAR(12)
+  * draft_content : TEXT
+  final_content : TEXT
+  * confirmed : BOOLEAN
+  confirmed_by : INTEGER <<FK>>
+  * created_at : DATETIME
+  confirmed_at : DATETIME
+}
+entity "status_histories" as sh {
+  * id : INTEGER <<PK>>
+  --
+  * feedback_id : INTEGER <<FK>>
+  * from_status : VARCHAR(12)
+  * to_status : VARCHAR(12)
+  * changed_by : INTEGER <<FK>>
+  * changed_at : DATETIME
+}
+entity "gold_labels" as gl {
+  * feedback_id : INTEGER <<PK,FK>>
+  --
+  * label : VARCHAR(10)
+  * topic : VARCHAR(20)
+  * labeled_by : INTEGER <<FK>>
+}
+
+gw ||--o{ customers
+customers |o--o{ fb
+ub |o--o{ fb
+users ||--o{ ub
+fb ||--o| sr
+fb ||--o| ps
+fb ||--o{ ft
+tp ||--o{ ft
+fb ||--o{ rd
+fb ||--o{ sh
+users |o--o{ rd
+users ||--o{ sh
+fb ||--o| gl
+users ||--o{ gl
+@enduml

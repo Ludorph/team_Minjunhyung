@@ -1,0 +1,48 @@
+@startuml
+title [프로세스 관점] CSV 업로드 → 분석 파이프라인 → 답변 초안 (UC-01~04)
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+skinparam sequenceMessageAlign center
+autonumber
+
+actor "담당자" as A
+participant "React SPA" as UI
+participant "FeedbackRouter" as R
+participant "FeedbackService" as FS
+participant "AnalysisService\n(BackgroundTask)" as AS
+participant "Pipeline" as P
+participant "SentimentFilter" as SF
+participant "AIClient" as AI
+participant "Repository" as DB
+
+A -> UI : CSV 파일 선택
+UI -> R : POST /api/feedbacks/upload
+R -> FS : upload(file)
+FS -> FS : 형식·필수 필드 검증
+alt 형식 오류 (E1)
+  FS --> UI : 400 오류 행 목록
+else 정상
+  FS -> DB : 피드백 일괄 저장 (status=미처리)
+  FS --> UI : 202 batchId (1초 이내 응답)
+  FS ->> AS : analyze(ids) 비동기 요청
+end
+
+loop 피드백마다
+  AS -> P : run(ctx)
+  P -> P : Validation → Cleansing
+  P -> SF : process(ctx)
+  SF -> AI : 감정 분석 요청 (timeout 5s)
+  alt AI 장애·타임아웃 (E1)
+    SF -> SF : RuleBasedSentimentAnalyzer로 대체
+  end
+  P -> P : Topic → Priority (긴급 태그 Decorator)
+  AS -> DB : SentimentResult, Topic, PriorityScore 저장
+end
+
+A -> UI : 피드백 상세 열기
+UI -> R : POST /api/feedbacks/{id}/drafts
+R -> AS : (ResponseService) 전략 선택 → 초안 생성
+R --> UI : 초안 (3초 이내)
+A -> UI : 검토·수정 후 [확정]
+UI -> R : PATCH /api/drafts/{id}/confirm
+@enduml

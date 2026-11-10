@@ -1,0 +1,17 @@
+@startuml
+title 피드백 대응 상태 전이 (State 패턴)
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+
+[*] --> 미처리 : 피드백 등록
+미처리 --> 처리중 : start()\n담당자 배정·초안 검토 시작
+처리중 --> 완료 : complete()\n답변 확정 필요
+완료 --> 처리중 : reopen()\n재문의·확정 취소
+완료 --> [*]
+
+note right of 미처리
+  허용되지 않는 전이
+  (예: 미처리 → 완료)는
+  InvalidTransitionError
+end note
+@enduml

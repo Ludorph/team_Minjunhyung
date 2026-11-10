@@ -1,0 +1,28 @@
+@startuml
+title 화면 흐름도 (Screen Flow)
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+skinparam rectangleRoundCorner 12
+skinparam nodesep 40
+skinparam ranksep 45
+
+rectangle "S01 로그인" as S01
+rectangle "S02 대시보드\n- 감정·주제별 추이 차트\n- 미처리/긴급 건수" as S02
+rectangle "S03 피드백 목록\n- 우선순위 정렬\n- 기간·감정·상태 필터" as S03
+rectangle "S04 피드백 상세 / 답변 검토\n- 원문 ↔ AI 초안 대조\n- 산출 근거(점수 구성) 표시\n- 전략 변경·수정·[확정]\n- 상태 변경" as S04
+rectangle "S05 피드백 단건 입력" as S05
+rectangle "S06 CSV 일괄 업로드\n- 업로드 결과(성공/오류 행)" as S06
+rectangle "S07 분석 정확도 검증\n(관리자 전용)\n- 라벨 표본 vs AI 일치율" as S07
+
+S01 --> S02 : 로그인 성공
+S01 --> S01 : 실패 시 오류 표시
+S02 --> S03 : 목록 / 차트 항목 클릭(필터 적용)
+S03 --> S04 : 행 선택
+S04 --> S03 : 확정·상태 변경 후 복귀
+S02 --> S05 : 피드백 등록
+S02 --> S06 : CSV 업로드
+S05 --> S03 : 저장 완료
+S06 --> S03 : 업로드 완료
+S06 --> S06 : 형식 오류 → 재업로드
+S02 --> S07 : 관리자 메뉴
+@enduml

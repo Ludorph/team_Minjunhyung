@@ -1,7 +1,7 @@
 # CLAUDE.md — FeedbackCare
 
 중소기업용 고객 피드백 감정 분석 및 대응 지원 시스템 (팀 TeamMinJunhyung, 저장소 `team_Minjunhyung`).
-근거 문서: 요구사항 정의서 v1.1 (FR-01~05 필수, EX-01~08 선택, NFR-01~03), 시스템 설계서 v1.1.
+근거 문서: 요구사항 정의서 v1.1 (FR-01~05 필수, EX-01~08 선택, NFR-01~03), 시스템 설계서 v1.1. 모든 문서는 `docs/` 아래 분류 폴더에 있고 색인은 `docs/README.md`.
 팀 코딩 규칙 전문은 `docs/coding-rules.md` — 이 파일은 그 요약이며, 다르면 coding-rules.md가 우선이다.
 
 ## 실행·검사 명령

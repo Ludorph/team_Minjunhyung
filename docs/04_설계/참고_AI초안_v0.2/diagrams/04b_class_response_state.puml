@@ -1,0 +1,75 @@
+@startuml
+title [논리 관점] 클래스 다이어그램 ③ 우선순위 태그 · 답변 생성 · 상태 (Decorator · Strategy · State)
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName "Malgun Gothic"
+skinparam nodesep 30
+skinparam ranksep 55
+
+package "Decorator: 우선순위 태그" {
+  interface PriorityItem <<interface>> {
+    + score() : float
+    + tags() : List<str>
+  }
+  class BasePriorityItem {
+    - priority : PriorityScore
+  }
+  abstract class TagDecorator {
+    # inner : PriorityItem
+    + tags() : List<str>
+  }
+  class UrgentTagDecorator
+  class VipTagDecorator
+  class RepeatComplaintTagDecorator <<선택>>
+  PriorityItem <|.. BasePriorityItem
+  PriorityItem <|.. TagDecorator
+  TagDecorator o-- "1" PriorityItem
+  TagDecorator <|-- UrgentTagDecorator
+  TagDecorator <|-- VipTagDecorator
+  TagDecorator <|-- RepeatComplaintTagDecorator
+}
+
+package "Strategy: 답변 초안" {
+  class ResponseService {
+    + createDraft(feedbackId : int, strategy : str) : ResponseDraft
+    + confirm(draftId : int, text : str, user : User) : void
+  }
+  class StrategySelector {
+    + select(sentiment : SentimentResult, topics : List<str>) : ResponseStrategy
+  }
+  interface ResponseStrategy <<interface>> {
+    + generate(fb : Feedback, ctx : FeedbackContext) : str
+  }
+  class ApologyStrategy
+  class GuidanceStrategy
+  class ThanksStrategy
+  ResponseService ..> StrategySelector
+  StrategySelector ..> ResponseStrategy
+  ResponseStrategy <|.. ApologyStrategy
+  ResponseStrategy <|.. GuidanceStrategy
+  ResponseStrategy <|.. ThanksStrategy
+}
+
+package "State: 대응 상태" {
+  class Feedback {
+    - state : FeedbackState
+    + start(user : User) : void
+    + complete(user : User) : void
+    + reopen(user : User) : void
+  }
+  abstract class FeedbackState {
+    + start(fb : Feedback) : void
+    + complete(fb : Feedback) : void
+    + reopen(fb : Feedback) : void
+  }
+  class PendingState
+  class InProgressState
+  class DoneState
+  Feedback o-- "1" FeedbackState
+  FeedbackState <|-- PendingState
+  FeedbackState <|-- InProgressState
+  FeedbackState <|-- DoneState
+}
+UrgentTagDecorator -[hidden]down- ResponseService
+ApologyStrategy -[hidden]down- Feedback
+@enduml
