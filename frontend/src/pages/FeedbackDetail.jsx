@@ -6,9 +6,13 @@ import { navigate } from '../router.js'
 
 const ACTIONS = {
   PENDING: [['start', '처리 시작']],
-  IN_PROGRESS: [['complete', '완료 처리']],
-  DONE: [['reopen', '재오픈']],
+  IN_PROGRESS: [['complete', '처리 완료']],
+  DONE: [['reopen', '다시 열기']],
 }
+
+const GRADES = { VIP: 'VIP', REGULAR: '일반', NEW: '신규' }
+
+const time = (s) => s.replace('T', ' ').slice(0, 16)
 
 export default function FeedbackDetail({ id }) {
   const [fb, setFb] = useState(null)
@@ -37,84 +41,109 @@ export default function FeedbackDetail({ id }) {
     }
   }
 
-  if (!fb) return error ? <p className="error">{error}</p> : <p>불러오는 중...</p>
+  if (!fb) return error ? <p className="error">{error}</p> : <p className="loading">불러오는 중</p>
   const draft = fb.drafts[fb.drafts.length - 1]
   const p = fb.priority
 
   return (
     <div>
-      <p><a href="#/feedbacks">← 목록으로</a></p>
-      <h2>피드백 #{fb.id} <StatusBadge status={fb.status} /> <Tags tags={fb.tags} /></h2>
+      <a className="back" href="#/feedbacks">피드백 목록</a>
+      <div className="page-head">
+        <div className="title-row">
+          <h2>#{fb.id}</h2>
+          <StatusBadge status={fb.status} />
+          <Tags tags={fb.tags} />
+        </div>
+        <div className="tools">
+          {ACTIONS[fb.status].map(([action, label]) => (
+            <button key={action} className="primary" onClick={run(async () => {
+              await api.changeStatus(id, action)
+              if (action === 'complete') navigate('/feedbacks')
+            }, `${label}했습니다`)}>{label}</button>
+          ))}
+        </div>
+      </div>
       {msg && <p className="ok">{msg}</p>}
       {error && <p className="error">{error}</p>}
 
       <div className="grid two">
         <section className="card">
-          <h3>원문</h3>
-          <p className="content">{fb.content}</p>
-          <p className="muted">
-            {fb.customer_name || '익명'} ({fb.grade || '-'}) · {LABELS[fb.source]} · {fb.written_at.replace('T', ' ').slice(0, 16)}
-          </p>
-          <p>감정: <SentimentBadge sentiment={fb.sentiment} />
-            {fb.sentiment && <>
-              <small className="muted"> 강도 {fb.sentiment.intensity} · 신뢰도 {fb.sentiment.confidence} </small>
-              <SourceBadge ai={fb.sentiment.analyzer === 'LLM'} aiText="AI 분석 결과" fallbackText="규칙 기반 분석 (AI 대체)" />
-            </>}
-          </p>
-          <p>주제: {fb.topics.join(', ') || '-'}</p>
-          <h4>우선순위 산출 근거</h4>
+          <div className="card-head">
+            <h3>고객 의견</h3>
+            <button className="ghost" onClick={run(() => api.reanalyze(id), '다시 분석했습니다')}>다시 분석</button>
+          </div>
+          <p className="quote">{fb.content}</p>
+          <dl className="meta">
+            <dt>고객</dt>
+            <dd>{fb.customer_name || '익명'}{fb.grade && <span className="muted">· {GRADES[fb.grade] || fb.grade}</span>}</dd>
+            <dt>접수</dt>
+            <dd>{LABELS[fb.source]} <span className="muted">· {time(fb.written_at)}</span></dd>
+            <dt>감정</dt>
+            <dd>
+              <SentimentBadge sentiment={fb.sentiment} />
+              {fb.sentiment && <>
+                <span className="muted">강도 {fb.sentiment.intensity}</span>
+                <SourceBadge ai={fb.sentiment.analyzer === 'LLM'} aiText="AI 분석" fallbackText="규칙 기반 분석" />
+              </>}
+            </dd>
+            <dt>주제</dt>
+            <dd>{fb.topics.join(', ') || '-'}</dd>
+          </dl>
+          <h4>우선순위</h4>
           {p ? (
             <p className="formula">
-              P = (부정강도 {p.neg_intensity} × 10) × 등급가중치 {p.grade_weight} × 시간가중치 {p.time_weight} = <b>{p.score}</b>
-              {p.is_urgent ? ' → 긴급(≥15)' : ''}
+              부정 강도 {p.neg_intensity} × 10 × 등급 {p.grade_weight} × 경과 시간 {p.time_weight} = <b>{p.score}점</b>
+              {p.is_urgent && <span className="urgent-note"> · 긴급</span>}
             </p>
           ) : <p className="muted">분석 전</p>}
-          <button onClick={run(() => api.reanalyze(id), '재분석 완료')}>재분석</button>
         </section>
 
         <section className="card">
-          <h3>답변 초안 {draft && <small className="muted">({LABELS[draft.strategy]}{draft.confirmed ? ', 확정됨' : ''})</small>}</h3>
-          {draft && (
-            <p>
-              <SourceBadge ai={draft.is_ai_generated} aiText="AI 생성 초안" fallbackText="템플릿 초안 (AI 대체)" />
-              {draft.is_edited && <span className="tag edited">담당자 수정</span>}
-              <small className="muted"> 담당자가 검토·확정해야 완료 처리할 수 있습니다.</small>
-            </p>
-          )}
-          <div className="row">
-            <select value={strategy} onChange={(e) => setStrategy(e.target.value)}>
-              <option value="">자동 선택</option>
-              <option value="APOLOGY">사과형</option>
-              <option value="GUIDANCE">안내형</option>
-              <option value="THANKS">감사형</option>
-            </select>
-            <button onClick={run(() => api.createDraft(id, strategy), '초안 생성됨')}>초안 생성</button>
+          <div className="card-head">
+            <h3>답변</h3>
+            {draft && (
+              <span>
+                <SourceBadge ai={draft.is_ai_generated} aiText="AI 작성" fallbackText="템플릿" />
+                {draft.is_edited && <span className="tag edited">수정됨</span>}
+                {draft.confirmed && <span className="badge st-DONE">확정</span>}
+              </span>
+            )}
           </div>
-          <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder="초안을 생성하세요" />
+          <div className="row">
+            <select value={strategy} onChange={(e) => setStrategy(e.target.value)} aria-label="답변 유형">
+              <option value="">유형 자동</option>
+              <option value="APOLOGY">사과</option>
+              <option value="GUIDANCE">안내</option>
+              <option value="THANKS">감사</option>
+            </select>
+            <button onClick={run(() => api.createDraft(id, strategy), '초안을 만들었습니다')}>
+              {draft ? '다시 작성' : '초안 작성'}
+            </button>
+          </div>
+          <textarea rows={10} value={text} onChange={(e) => setText(e.target.value)} placeholder="초안 작성을 누르면 답변 초안이 들어갑니다" style={{ marginTop: 8 }} />
+          <p className="notice">AI가 작성한 초안은 내용을 확인한 뒤 확정해 주세요. 확정한 답변이 있어야 처리 완료할 수 있습니다.</p>
           {draft && (
-            <div className="row">
-              <button onClick={run(() => api.editDraft(draft.id, text), '수정 저장됨')}>수정 저장</button>
-              <button className="primary" onClick={run(() => api.confirmDraft(draft.id, text), '답변 확정됨')}>확정</button>
+            <div className="actions">
+              <button onClick={run(() => api.editDraft(draft.id, text), '저장했습니다')}>저장</button>
+              <button className="primary" onClick={run(() => api.confirmDraft(draft.id, text), '답변을 확정했습니다')}>확정</button>
             </div>
           )}
         </section>
       </div>
 
       <section className="card">
-        <h3>상태 변경</h3>
-        <div className="row">
-          {ACTIONS[fb.status].map(([action, label]) => (
-            <button key={action} onClick={run(async () => {
-              await api.changeStatus(id, action)
-              if (action === 'complete') navigate('/feedbacks')
-            }, `${label} 완료`)}>{label}</button>
-          ))}
-        </div>
-        <ul className="history">
-          {fb.histories.map((h, i) => (
-            <li key={i}>{h.changed_at.replace('T', ' ').slice(0, 16)} · {LABELS[h.from_status]} → {LABELS[h.to_status]} (사용자 {h.changed_by})</li>
-          ))}
-        </ul>
+        <div className="card-head"><h3>처리 이력</h3></div>
+        {fb.histories.length === 0 ? <p className="muted">아직 이력이 없습니다</p> : (
+          <ul className="timeline">
+            {fb.histories.map((h, i) => (
+              <li key={i}>
+                <time>{time(h.changed_at)}</time>
+                <span>{LABELS[h.from_status]} → {LABELS[h.to_status]}</span>
+                <span className="muted">사용자 {h.changed_by}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   )
