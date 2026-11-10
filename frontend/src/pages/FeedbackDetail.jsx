@@ -1,5 +1,5 @@
 // S04 피드백 상세 / 답변 검토: 원문↔초안 대조, 점수 산출 근거, 전략 변경·수정·확정, 상태 변경
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api, LABELS } from '../api/client.js'
 import { SentimentBadge, SourceBadge, StatusBadge, Tags } from '../components/Badges.jsx'
 import { navigate } from '../router.js'
@@ -17,14 +17,14 @@ export default function FeedbackDetail({ id }) {
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
-  const load = () =>
+  const load = useCallback(() =>
     api.getFeedback(id).then((f) => {
       setFb(f)
       const last = f.drafts[f.drafts.length - 1]
       setText(last ? last.final_content || last.draft_content : '')
-    }).catch((e) => setError(e.message))
+    }).catch((e) => setError(e.message)), [id])
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { load() }, [load])
 
   const run = (fn, ok) => async () => {
     setError(''); setMsg('')

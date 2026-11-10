@@ -2,7 +2,10 @@ import pytest
 
 from app.business.priority.calculator import PriorityCalculator
 from app.business.priority.decorators import (
-    BasePriorityItem, UrgentTagDecorator, VipTagDecorator, decorate,
+    BasePriorityItem,
+    UrgentTagDecorator,
+    VipTagDecorator,
+    decorate,
 )
 
 WEIGHTS = {"VIP": 1.5, "REGULAR": 1.0, "NEW": 0.8}

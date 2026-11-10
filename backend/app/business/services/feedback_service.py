@@ -9,10 +9,19 @@ from sqlalchemy.orm import Session
 from app.business.priority.decorators import decorate
 from app.business.state.feedback_state import apply_transition
 from app.persistence.models import (
-    CustomerGrade, Feedback, SOURCES, StatusHistory, UploadBatch, User,
+    SOURCES,
+    CustomerGrade,
+    Feedback,
+    GoldLabel,
+    StatusHistory,
+    UploadBatch,
+    User,
 )
 from app.persistence.repositories import (
-    CustomerRepository, FeedbackRepository, GoldLabelRepository, StatusHistoryRepository,
+    CustomerRepository,
+    FeedbackRepository,
+    GoldLabelRepository,
+    StatusHistoryRepository,
     UploadBatchRepository,
 )
 
@@ -150,7 +159,7 @@ class FeedbackService:
         return fb
 
     # ---------- 정답 라벨 (S07 표본) ----------
-    def set_gold_label(self, feedback_id: int, label: str, topic: str, user: User):
+    def set_gold_label(self, feedback_id: int, label: str, topic: str, user: User) -> GoldLabel:
         self.get(feedback_id)
         g = GoldLabelRepository(self.db).upsert(feedback_id, label, topic, user.id)
         self.db.commit()

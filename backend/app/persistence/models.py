@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.persistence.database import Base
 
 
-def Dec(p: int, s: int):  # noqa: N802 - DECIMAL(p,s) 를 float 로 다룬다
+def Dec(p: int, s: int) -> Numeric:  # noqa: N802 - DECIMAL(p,s) 를 float 로 다룬다
     return Numeric(p, s, asdecimal=False)
 
 

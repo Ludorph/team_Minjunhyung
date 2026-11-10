@@ -1,0 +1,18 @@
+# 팀 코딩 규칙(docs/coding-rules.md)의 Python 검사 설정 — PEP 8 기반
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/W: PEP 8 스타일, F: 오류(미사용 import 등), I: import 순서, N: PEP 8 명명 규칙
+# ANN001/ANN201: 공개 함수 인자·반환 타입 힌트 필수
+select = ["E", "W", "F", "I", "N", "ANN001", "ANN201"]
+
+[tool.ruff.lint.per-file-ignores]
+# 라우터는 response_model 로 반환 형식을 명시하므로 반환 타입 힌트 생략 허용 (FastAPI 관례)
+"app/presentation/routers/*" = ["ANN201"]
+# 테스트 함수는 타입 힌트 생략 허용
+"tests/*" = ["ANN001", "ANN201"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]

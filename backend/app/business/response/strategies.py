@@ -5,6 +5,7 @@
 import logging
 from abc import ABC, abstractmethod
 
+from app.business.pipeline.base import FeedbackContext
 from app.infra.ai_client import AIClient
 from app.persistence.models import Feedback, SentimentLabel, SentimentResult
 
@@ -22,7 +23,7 @@ class ResponseStrategy(ABC):
 
     used_ai: bool = False  # 마지막 generate() 결과가 AI 생성인지(템플릿 대체면 False)
 
-    def generate(self, fb: Feedback, ctx) -> str:
+    def generate(self, fb: Feedback, ctx: FeedbackContext) -> str:
         if self.ai_client is not None:
             try:
                 text = self.ai_client.complete(self._prompt(fb, ctx))
@@ -33,7 +34,7 @@ class ResponseStrategy(ABC):
         self.used_ai = False
         return self.template(fb, ctx)
 
-    def _prompt(self, fb: Feedback, ctx) -> str:
+    def _prompt(self, fb: Feedback, ctx: FeedbackContext) -> str:
         return (f"당신은 중소기업 고객 응대 담당자입니다. {self.instruction}\n"
                 f"주제: {', '.join(ctx.topics) or '기타'}\n고객 피드백: {fb.content}")
 
@@ -42,7 +43,7 @@ class ResponseStrategy(ABC):
         return f"{fb.customer.name} 고객님" if fb.customer else "고객님"
 
     @abstractmethod
-    def template(self, fb: Feedback, ctx) -> str:
+    def template(self, fb: Feedback, ctx: FeedbackContext) -> str:
         """AI 미사용 시 템플릿 기반 초안."""
 
 
@@ -51,7 +52,7 @@ class ApologyStrategy(ResponseStrategy):
     code = "APOLOGY"
     instruction = "불편을 겪은 고객에게 정중히 사과하고 조치 계획을 안내하는 답변을 작성하세요."
 
-    def template(self, fb, ctx) -> str:
+    def template(self, fb: Feedback, ctx: FeedbackContext) -> str:
         topic = ctx.topics[0] if ctx.topics else "이용"
         return (f"{self._name(fb)}, 먼저 {topic} 관련하여 불편을 드려 진심으로 사과드립니다. "
                 "말씀해 주신 내용을 담당 부서와 확인하여 빠르게 조치하고 결과를 안내드리겠습니다. "
@@ -63,7 +64,7 @@ class GuidanceStrategy(ResponseStrategy):
     code = "GUIDANCE"
     instruction = "고객의 문의에 필요한 정보를 명확하게 안내하는 답변을 작성하세요."
 
-    def template(self, fb, ctx) -> str:
+    def template(self, fb: Feedback, ctx: FeedbackContext) -> str:
         topic = ctx.topics[0] if ctx.topics else "문의"
         return (f"{self._name(fb)}, {topic} 관련 문의 주셔서 감사합니다. "
                 "확인 후 자세한 내용을 안내드리겠으며, 추가로 궁금하신 점은 고객센터로 언제든 문의해 주세요.")
@@ -74,7 +75,7 @@ class ThanksStrategy(ResponseStrategy):
     code = "THANKS"
     instruction = "긍정적인 의견을 남긴 고객에게 감사를 전하는 답변을 작성하세요."
 
-    def template(self, fb, ctx) -> str:
+    def template(self, fb: Feedback, ctx: FeedbackContext) -> str:
         return (f"{self._name(fb)}, 좋은 말씀 남겨 주셔서 진심으로 감사드립니다. "
                 "앞으로도 만족하실 수 있도록 더욱 노력하겠습니다.")
 

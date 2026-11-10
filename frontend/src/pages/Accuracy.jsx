@@ -21,7 +21,7 @@ export default function Accuracy() {
     }
   }
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
-  const pct = (v) => (v == null ? '-' : `${(v * 100).toFixed(1)}%`)
+  const pct = (v) => (v === null || v === undefined ? '-' : `${(v * 100).toFixed(1)}%`)
 
   return (
     <div>
