@@ -1,13 +1,13 @@
 // S03 피드백 목록: 우선순위 정렬(서버), 기간·감정·상태 필터
 import { useEffect, useState } from 'react'
 import { api, LABELS } from '../api/client.js'
-import { SentimentBadge, StatusBadge, Tags } from '../components/Badges.jsx'
+import { Score, SentimentBadge, StatusBadge, Tags } from '../components/Badges.jsx'
 import { navigate } from '../router.js'
 
+const EMPTY = { status: '', sentiment: '', topic: '', urgent: '', date_from: '', date_to: '' }
+
 export default function FeedbackList({ initialFilters = {} }) {
-  const [filters, setFilters] = useState({
-    status: '', sentiment: '', topic: '', urgent: '', date_from: '', date_to: '', ...initialFilters,
-  })
+  const [filters, setFilters] = useState({ ...EMPTY, ...initialFilters })
   const [items, setItems] = useState([])
   const [error, setError] = useState('')
 
@@ -17,47 +17,64 @@ export default function FeedbackList({ initialFilters = {} }) {
   }, [filters])
 
   const set = (k) => (e) => setFilters({ ...filters, [k]: e.target.value })
+  const filtered = Object.values(filters).some((v) => v !== '')
 
   return (
     <div>
-      <h2>피드백 목록 <small className="muted">({items.length}건, 우선순위 순)</small></h2>
+      <div className="page-head">
+        <h2>피드백<span className="count">{items.length}</span></h2>
+        <div className="tools">
+          <button onClick={() => navigate('/upload')}>일괄 업로드</button>
+          <button className="primary" onClick={() => navigate('/feedbacks/new')}>직접 등록</button>
+        </div>
+      </div>
+
       <div className="filters">
         <select value={filters.status} onChange={set('status')}>
-          <option value="">상태 전체</option>
+          <option value="">상태</option>
           {['PENDING', 'IN_PROGRESS', 'DONE'].map((s) => <option key={s} value={s}>{LABELS[s]}</option>)}
         </select>
         <select value={filters.sentiment} onChange={set('sentiment')}>
-          <option value="">감정 전체</option>
+          <option value="">감정</option>
           {['NEGATIVE', 'NEUTRAL', 'POSITIVE'].map((s) => <option key={s} value={s}>{LABELS[s]}</option>)}
         </select>
         <select value={filters.topic} onChange={set('topic')}>
-          <option value="">주제 전체</option>
+          <option value="">주제</option>
           {['품질', '배송', '가격', '서비스', '기타'].map((t) => <option key={t}>{t}</option>)}
         </select>
-        <label>시작 <input type="date" value={filters.date_from} onChange={set('date_from')} /></label>
-        <label>종료 <input type="date" value={filters.date_to} onChange={set('date_to')} /></label>
-        {filters.urgent && <button onClick={() => setFilters({ ...filters, urgent: '' })}>긴급 필터 해제</button>}
+        <input type="date" value={filters.date_from} onChange={set('date_from')} aria-label="시작일" />
+        <span className="muted">~</span>
+        <input type="date" value={filters.date_to} onChange={set('date_to')} aria-label="종료일" />
+        {filters.urgent && <span className="tag urgent">긴급만</span>}
+        {filtered && <button className="ghost" onClick={() => setFilters(EMPTY)}>초기화</button>}
+        <span className="spacer" />
+        <small className="muted">우선순위 높은 순</small>
       </div>
+
       {error && <p className="error">{error}</p>}
-      <table className="list">
-        <thead>
-          <tr><th>점수</th><th>태그</th><th>감정</th><th>주제</th><th>내용</th><th>고객</th><th>작성일</th><th>상태</th></tr>
-        </thead>
-        <tbody>
-          {items.map((f) => (
-            <tr key={f.id} className="clickable" onClick={() => navigate(`/feedbacks/${f.id}`)}>
-              <td className="num">{f.priority ? f.priority.score.toFixed(1) : '-'}</td>
-              <td><Tags tags={f.tags} /></td>
-              <td><SentimentBadge sentiment={f.sentiment} /></td>
-              <td>{f.topics.join(', ')}</td>
-              <td className="ellipsis">{f.content}</td>
-              <td>{f.customer_name || '-'} {f.grade && <small className="muted">{f.grade}</small>}</td>
-              <td>{f.written_at.slice(0, 16).replace('T', ' ')}</td>
-              <td><StatusBadge status={f.status} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="table-wrap">
+        <table className="list">
+          <thead>
+            <tr><th className="num">우선순위</th><th>내용</th><th>감정</th><th>주제</th><th>고객</th><th>접수일시</th><th>상태</th></tr>
+          </thead>
+          <tbody>
+            {items.map((f) => (
+              <tr key={f.id} className="clickable" onClick={() => navigate(`/feedbacks/${f.id}`)}>
+                <td className="num"><Score priority={f.priority} /></td>
+                <td className="ellipsis"><Tags tags={f.tags} />{f.content}</td>
+                <td><SentimentBadge sentiment={f.sentiment} /></td>
+                <td className="muted">{f.topics.join(', ')}</td>
+                <td>{f.customer_name || <span className="muted">익명</span>}</td>
+                <td className="muted">{f.written_at.slice(5, 16).replace('T', ' ')}</td>
+                <td><StatusBadge status={f.status} /></td>
+              </tr>
+            ))}
+            {items.length === 0 && !error && (
+              <tr><td colSpan={7} className="empty">조건에 맞는 피드백이 없습니다</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

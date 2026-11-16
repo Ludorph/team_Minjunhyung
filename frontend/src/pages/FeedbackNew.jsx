@@ -21,22 +21,32 @@ export default function FeedbackNew() {
   }
 
   return (
-    <form className="card form" onSubmit={submit}>
-      <h2>피드백 등록</h2>
-      <label>고객명<input value={form.customer_name} onChange={set('customer_name')} placeholder="(선택)" /></label>
-      <label>고객 등급
-        <select value={form.grade} onChange={set('grade')}>
-          <option value="VIP">VIP</option><option value="REGULAR">일반</option><option value="NEW">신규</option>
-        </select>
-      </label>
-      <label>출처
-        <select value={form.source} onChange={set('source')}>
-          <option value="REVIEW">리뷰</option><option value="CONSULT">상담</option><option value="EMAIL">이메일</option>
-        </select>
-      </label>
-      <label>내용<textarea rows={6} value={form.content} onChange={set('content')} required /></label>
-      {error && <p className="error">{error}</p>}
-      <button className="primary" type="submit">저장</button>
-    </form>
+    <div>
+      <div className="page-head">
+        <h2>피드백 직접 등록</h2>
+        <button onClick={() => navigate('/upload')}>일괄 업로드</button>
+      </div>
+      <form className="card form" onSubmit={submit}>
+        <div className="grid three">
+          <label>고객명<input value={form.customer_name} onChange={set('customer_name')} placeholder="선택" /></label>
+          <label>고객 등급
+            <select value={form.grade} onChange={set('grade')} disabled={!form.customer_name}>
+              <option value="VIP">VIP</option><option value="REGULAR">일반</option><option value="NEW">신규</option>
+            </select>
+          </label>
+          <label>출처
+            <select value={form.source} onChange={set('source')}>
+              <option value="REVIEW">리뷰</option><option value="CONSULT">상담</option><option value="EMAIL">이메일</option>
+            </select>
+          </label>
+        </div>
+        <label>내용<textarea rows={7} value={form.content} onChange={set('content')} placeholder="리뷰, 상담 기록, 문의 메일 내용" required /></label>
+        {error && <p className="error">{error}</p>}
+        <div className="actions">
+          <button type="button" onClick={() => navigate('/feedbacks')}>취소</button>
+          <button className="primary" type="submit">등록</button>
+        </div>
+      </form>
+    </div>
   )
 }
