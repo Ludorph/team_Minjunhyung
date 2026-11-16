@@ -18,3 +18,4 @@ Thumbs.db
 # 비밀 정보 (AI API 키 등)
 .env
 .env.*
+!.env.example

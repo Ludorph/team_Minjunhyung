@@ -43,7 +43,10 @@ class CleansingFilter(Filter):
 
 
 class SentimentFilter(Filter):
-    """ConcreteFilter: primary(LLM) 분석, 실패 시 fallback(규칙 기반)으로 대체."""
+    """ConcreteFilter: primary(LLM) 분석, 실패 시 fallback(규칙 기반)으로 대체.
+
+    LLM 은 감정과 주제를 한 번에 판정하므로, 주제 결과가 있으면 ctx 에 함께 넣는다.
+    """
 
     def __init__(self, primary: SentimentAnalyzer, fallback: SentimentAnalyzer):
         self.primary = primary
@@ -51,21 +54,27 @@ class SentimentFilter(Filter):
 
     def process(self, ctx: FeedbackContext) -> FeedbackContext:
         try:
-            ctx.sentiment = self.primary.analyze(ctx.clean_text)
+            outcome = self.primary.analyze_full(ctx.clean_text)
         except Exception as e:  # noqa: BLE001 - AI 장애·타임아웃 등 (E1)
             log.info("primary 분석 실패 → 규칙 기반 대체: %s", e)
             ctx.notes.append(f"fallback: {e}")
-            ctx.sentiment = self.fallback.analyze(ctx.clean_text)
+            outcome = self.fallback.analyze_full(ctx.clean_text)
+        ctx.sentiment = outcome.sentiment
+        if outcome.topic_scores:
+            ctx.topic_scores = outcome.topic_scores
+            ctx.topics = list(outcome.topic_scores)
         return ctx
 
 
 class TopicFilter(Filter):
-    """ConcreteFilter: 주제 분류."""
+    """ConcreteFilter: 주제 분류. AI 가 이미 주제를 판정했으면 그대로 두고, 아니면 키워드로 분류한다."""
 
     def __init__(self, classifier: TopicClassifier):
         self.classifier = classifier
 
     def process(self, ctx: FeedbackContext) -> FeedbackContext:
+        if ctx.topic_scores:
+            return ctx
         ctx.topic_scores = self.classifier.classify(ctx.clean_text)
         ctx.topics = list(ctx.topic_scores)
         return ctx

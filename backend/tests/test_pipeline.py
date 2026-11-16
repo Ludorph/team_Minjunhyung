@@ -11,7 +11,7 @@ from app.persistence.models import Customer, Feedback
 class FakeLLM(AIClient):
     """정상 동작하는 AI 를 흉내내는 테스트 더블."""
 
-    def complete(self, prompt: str) -> str:
+    def complete(self, prompt: str, system: str | None = None) -> str:
         return '{"label": "NEGATIVE", "intensity": 0.9, "confidence": 0.95}'
 
 
