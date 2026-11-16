@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 
 # backend/ 디렉터리
 BASE_DIR = Path(__file__).resolve().parents[2]
-# 로컬 개발용 backend/.env (커밋 금지). 이미 설정된 환경변수(배포 서비스·테스트)가 우선한다.
+# 로컬 개발용 .env (커밋 금지): 프로젝트 최상위 → backend 순서로 읽는다.
+# 이미 설정된 환경변수(배포 서비스·테스트)와 먼저 읽은 파일이 우선한다.
+load_dotenv(BASE_DIR.parent / ".env", override=False)
 load_dotenv(BASE_DIR / ".env", override=False)
 
 
