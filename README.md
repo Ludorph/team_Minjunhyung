@@ -122,7 +122,7 @@ uvicorn app.main:app --reload --port 8000   # http://127.0.0.1:8000/docs
 pytest                                       # 테스트
 ```
 DB 파일은 `backend/feedbackcare.db` 에 생성됩니다(삭제하면 초기화). 환경변수:
-`FEEDBACKCARE_DB_URL`, `FEEDBACKCARE_AI_API_KEY`(Claude API 키), `FEEDBACKCARE_AI_MODEL`(기본 `claude-opus-5-5`),
+`FEEDBACKCARE_DB_URL`, `FEEDBACKCARE_AI_API_KEY`(Claude API 키), `FEEDBACKCARE_AI_MODEL`(기본 `claude-haiku-5-5`, 비용 최소화),
 `FEEDBACKCARE_AI_EFFORT`(기본 `low`), `FEEDBACKCARE_AI_TIMEOUT`(기본 5초).
 로컬에서는 `backend/.env.example` 을 `backend/.env` 로 복사해 키를 넣으면 됩니다 (`.env` 는 커밋 금지).
 

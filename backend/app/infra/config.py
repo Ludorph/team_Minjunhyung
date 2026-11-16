@@ -27,7 +27,8 @@ def get_settings() -> Settings:
     return Settings(
         db_url=os.getenv("FEEDBACKCARE_DB_URL", f"sqlite:///{(BASE_DIR / 'feedbackcare.db').as_posix()}"),
         ai_api_key=os.getenv("FEEDBACKCARE_AI_API_KEY") or None,
-        ai_model=os.getenv("FEEDBACKCARE_AI_MODEL", "claude-opus-5-5"),
+        # 비용 최소화: 가장 저렴한 Claude Haiku 5.5 (입력 $0.10·출력 $0.50 / 100만 토큰). 품질이 부족하면 이 값만 바꾼다
+        ai_model=os.getenv("FEEDBACKCARE_AI_MODEL", "claude-haiku-5-5"),
         ai_effort=os.getenv("FEEDBACKCARE_AI_EFFORT", "low"),
         ai_timeout=float(os.getenv("FEEDBACKCARE_AI_TIMEOUT", "5")),
         demo_data=os.getenv("FEEDBACKCARE_DEMO_DATA", "").lower() in ("1", "true", "yes"),
