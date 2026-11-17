@@ -2,20 +2,38 @@
 
 - 목적: AI·규칙 기반 분석 결과를 **사람이 정한 정답**과 비교해 정확도를 측정한다 (요구사항 정의서 NFR-01, 설계서 3장 QA-1).
 - 목표: 감정 3분류 일치율 **80% 이상**, 대표 주제 일치율 **70% 이상**, 표본 **30건 이상**.
-- 파일: `gold_template.csv`를 복사해 `gold_v1.csv`로 저장하고 채운다.
+- 파일: `gold_template.csv`를 복사해 `gold_v1.csv`로 저장하고 채운다. 측정 도구는 `backend/scripts/evaluate_accuracy.py`.
 
 ## 1. 왜 팀이 직접 써야 하는가
 
 `data/sample_feedback.csv`와 규칙 기반 감정 사전은 같은 시점에 AI가 함께 만들었다. 그 데이터로 정확도를 재면 "시험 문제를 낸 사람이 답안도 쓴" 상황이 되어 측정값이 의미가 없다.
 따라서 **문장 작성과 라벨링은 팀원이 직접** 하고, AI로 문장을 만들지 않는다 (운영계획서 13절: AI 출력 검증).
 
-## 2. 작업 순서
+## 2. 작업 순서 (명령은 모두 `backend` 폴더에서 실행)
 
-1. **문장 작성 (분담):** 김한서 15건, 민준형 15건. `case_type` 칸에 정해진 유형에 맞게 `content`를 쓴다. 고객명·등급·출처·작성일도 채운다 (가상 이름만 사용).
-2. **독립 라벨링:** 30건 전체를 **각자 따로** 라벨링한다. 김한서는 `*_a`, 민준형은 `*_b` 칸. 상대방 라벨을 보지 않는다.
-3. **일치도 확인:** `python -m scripts.evaluate_accuracy --gold ../data/eval/gold_v1.csv --agreement-only`로 두 사람의 일치도(Cohen's kappa)를 본다. **kappa 0.6 미만이면** 이 가이드의 기준을 다시 맞추고 불일치 건을 재검토한다.
-4. **정답 확정:** 불일치 건은 둘이 협의해 `gold_*` 칸을 채운다. 일치한 건은 그 값을 그대로 `gold_*`에 복사한다. 협의 내용은 `note`에 한 줄 남긴다.
-5. **측정:** `python -m scripts.evaluate_accuracy --gold ../data/eval/gold_v1.csv` 로 시스템 정확도를 측정하고 보고서를 저장한다.
+| 단계 | 누가 | 할 일 | 명령·결과 |
+|---|---|---|---|
+| 1 | 각자 15건 | **문장 작성**: `gold_template.csv`를 복사해 `gold_v1.csv`로 저장하고, 자기 `writer` 행의 `content`·`customer_name`·`grade`·`source`·`written_at`을 `case_type`에 맞게 쓴다 (가상 이름만 사용). 둘이 쓴 파일을 한 파일로 합친다 | `gold_v1.csv` 30행 모두 content가 채워져야 다음 단계 가능 |
+| 2 | 한 사람 | **개인별 라벨링 시트 만들기**: 서로의 라벨이 보이지 않게 시트를 따로 만든다 | `python -m scripts.evaluate_accuracy --make-sheets ../data/eval/gold_v1.csv` → `label_a.csv`(김한서), `label_b.csv`(민준형) |
+| 3 | 각자, 따로 | **독립 라벨링**: 자기 시트의 `label`·`intensity`·`topics` 칸을 30건 모두 채운다. 상대 시트를 보지 않는다. 엑셀에서 **CSV UTF-8**로 저장 | 3~5절의 기준을 따른다 |
+| 4 | 한 사람 | **시트 합치기**: 두 시트를 `gold_v1.csv`의 `*_a`·`*_b` 칸에 넣는다. 두 사람이 같게 쓴 값은 `gold_*` 칸에 자동으로 채워진다 | `python -m scripts.evaluate_accuracy --merge-sheets ../data/eval/label_a.csv ../data/eval/label_b.csv --gold ../data/eval/gold_v1.csv` → 협의가 필요한 행 번호를 알려 준다 |
+| 5 | 둘이 | **일치도 확인**: 감정 일치율과 Cohen's kappa를 본다. **kappa 0.6 미만이면** 3~5절 기준을 다시 맞추고 불일치 건을 재검토한다 | `python -m scripts.evaluate_accuracy --gold ../data/eval/gold_v1.csv --agreement-only` |
+| 6 | 둘이 | **정답 확정**: 4단계에서 알려 준 행의 `gold_label`·`gold_intensity`·`gold_topics`를 협의해 채우고 `note`에 한 줄 남긴다 | 부정(NEGATIVE) 정답은 `gold_intensity`도 반드시 채운다 |
+| 7 | 한 사람 | **측정**: 규칙 기반과 AI를 같은 정답으로 평가하고 보고서를 저장한다 (AI는 `.env`에 키가 있어야 한다) | `python -m scripts.evaluate_accuracy --gold ../data/eval/gold_v1.csv` → `data/eval/report_날짜_시각.md` |
+
+측정 옵션: `--engine rule`(규칙 기반만), `--engine llm`(AI만), `--engine both`(기본). 값이 틀리면(예: label 오타, 주제 오타) 어느 행의 어느 칸인지 알려 주고 멈춘다.
+
+### 측정 결과 읽는 법
+
+| 항목 | 의미 | 목표 |
+|---|---|---|
+| 감정 3분류 일치율 | `gold_label`과 시스템 예측이 같은 비율 | 80% 이상 (NFR-01) |
+| 대표 주제 일치율 | `gold_topics` 맨 앞 주제와 시스템의 1순위 주제가 같은 비율 | 70% 이상 (NFR-01) |
+| 부정 강도 평균 오차 | 정답이 NEGATIVE인 건에서 \|예측 강도 - 정답 강도\| 평균 (예측이 부정이 아니면 0으로 계산) | 참고 (우선순위 점수에 영향) |
+| 유형별 일치·혼동 행렬 | 어떤 `case_type`에서 틀리는지, 어떤 방향으로 틀리는지 | 개선 방향 근거 |
+| 응답 시간·비용 (AI) | 건당 평균·최대 응답 시간, 토큰, 추정 비용 | 5초 이내 (NFR-02) |
+
+AI 호출이 실패한 건은 측정에서 빠지고 "제외 n건"으로 따로 표시된다. 결과는 ⑥ 테스트 결과표와 주간 보고서에 옮겨 적는다.
 
 ## 3. 감정 라벨 (`label`)
 
@@ -67,4 +85,5 @@
 
 - 실제 고객 리뷰를 복사하지 않는다. 실존 인물·회사·전화번호를 쓰지 않는다 (운영계획서 9절).
 - `content`에 쉼표가 들어가면 엑셀에서 그대로 저장하면 된다 (CSV가 자동으로 따옴표 처리). 저장 형식은 **CSV UTF-8**.
-- 정답 확정 후에는 시스템 결과를 보고 정답을 고치지 않는다.
+- 정답 확정 후에는 시스템 결과를 보고 정답을 고치지 않는다. 측정 결과가 나쁘게 나와도 정답을 바꾸지 말고 시스템(프롬프트·사전)을 고친다.
+- `label_a.csv`·`label_b.csv`는 상대가 라벨링을 끝내기 전에는 서로 보내지 않는다.
