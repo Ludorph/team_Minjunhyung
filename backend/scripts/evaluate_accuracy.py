@@ -258,7 +258,10 @@ def run_measure(gold_path: Path, engine: str, out: Path | None) -> None:
     problems = check_labels([{**r, "label_x": r["gold_label"], "topics_x": r["gold_topics"],
                               "intensity_x": r["gold_intensity"]} for r in rows], "_x")
     if problems:
-        sys.exit("gold_* 칸을 먼저 채우세요 (협의 결과 확정):\n  " + "\n  ".join(problems[:20]))
+        names = {"label_x": "gold_label", "topics_x": "gold_topics", "intensity_x": "gold_intensity"}
+        shown = [re.sub(r"(label|topics|intensity)_x", lambda m: names[m.group(0)], p) for p in problems[:20]]
+        sys.exit(f"정답 칸(gold_label·gold_intensity·gold_topics)을 먼저 채우세요 "
+                 f"(문제 {len(problems)}건, 20건까지 표시):\n  " + "\n  ".join(shown))
     if len(rows) < MIN_ROWS:
         print(f"주의: 표본이 {len(rows)}건입니다 (목표 {MIN_ROWS}건 이상).")
     sections = [f"# 정확도 측정 보고서 (NFR-01)\n\n- 측정 시각: {datetime.now():%Y-%m-%d %H:%M}\n"
