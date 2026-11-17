@@ -253,6 +253,23 @@ def engine_section(name: str, res: dict, extra: str = "") -> str:
     return "\n".join(lines)
 
 
+def misses_section(name: str, gold: list[dict[str, str]], preds: list[Pred | None]) -> str:
+    """감정 또는 대표 주제가 정답과 다른 행을 표로 뽑는다 (원인 분석용: 시스템 오류/기준 모호/입력 실수)."""
+    lines = [f"### {name}: 불일치 행", "",
+             "| id | 유형 | 문장 | 정답 감정/주제 | 예측 감정/주제 | 어긋난 것 |", "|---|---|---|---|---|---|"]
+    for g, p in zip(gold, preds, strict=True):
+        if p is None:
+            continue
+        gt = split_topics(g["gold_topics"])
+        bad = [w for w, bad_ in (("감정", g["gold_label"] != p.label),
+                                 ("주제", not (gt and p.topics and gt[0] == p.topics[0]))) if bad_]
+        if bad:
+            lines.append(f"| {g['id']} | {g['case_type']} | {g['content'].strip()} | "
+                         f"{g['gold_label']}/{';'.join(gt)} | "
+                         f"{p.label}/{';'.join(p.topics[:2])} | {'·'.join(bad)} |")
+    return "\n".join(lines)
+
+
 def run_measure(gold_path: Path, engine: str, out: Path | None) -> None:
     _, rows = read_csv(gold_path)
     problems = check_labels([{**r, "label_x": r["gold_label"], "topics_x": r["gold_topics"],
@@ -268,7 +285,9 @@ def run_measure(gold_path: Path, engine: str, out: Path | None) -> None:
                 f"- 정답 표본: {gold_path.name} {len(rows)}건"]
     print(f"정답 표본 {len(rows)}건, 엔진: {engine}")
     if engine in ("rule", "both"):
-        sections.append(engine_section("규칙 기반 (감성 사전 + 키워드 주제)", score(rows, predict_rule(rows))))
+        rule_preds = predict_rule(rows)
+        sections.append(engine_section("규칙 기반 (감성 사전 + 키워드 주제)", score(rows, rule_preds)))
+        sections.append(misses_section("규칙 기반", rows, rule_preds))
     if engine in ("llm", "both"):
         s = get_settings()
         if not s.ai_api_key:
@@ -282,6 +301,7 @@ def run_measure(gold_path: Path, engine: str, out: Path | None) -> None:
                      "(Haiku 5.5 요금 기준 추정)"
                      if t else "")
             sections.append(engine_section(f"AI ({s.ai_model}, effort {s.ai_effort})", score(rows, preds), extra))
+            sections.append(misses_section("AI", rows, preds))
     report = "\n\n".join(sections) + "\n"
     print("\n" + report)
     path = out or gold_path.parent / f"report_{datetime.now():%Y%m%d_%H%M}.md"
