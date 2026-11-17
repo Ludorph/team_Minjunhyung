@@ -7,8 +7,7 @@ import pytest
 # app 모듈 import 전에 테스트용 DB·AI 설정 (AI 키 없음 → 규칙 기반 대체 경로)
 _TMP = Path(tempfile.mkdtemp(prefix="feedbackcare-test-"))
 os.environ["FEEDBACKCARE_DB_URL"] = f"sqlite:///{(_TMP / 'test.db').as_posix()}"
-os.environ.pop("FEEDBACKCARE_AI_API_KEY", None)
-os.environ.pop("FEEDBACKCARE_AI_ENDPOINT", None)
+os.environ["FEEDBACKCARE_AI_API_KEY"] = ""  # backend/.env 의 실제 키가 테스트에 쓰이지 않도록
 
 from fastapi.testclient import TestClient  # noqa: E402
 

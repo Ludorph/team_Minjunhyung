@@ -29,7 +29,9 @@ DB는 `backend/feedbackcare.db`(SQLite, 커밋 금지). 테이블 구조를 바�
 - 3계층: `backend/app/presentation`(routers·schemas) → `business/services` → `business/{pipeline, analyzers, priority, response, state}` → `persistence`(models·repositories). `infra`는 AI 클라이언트·설정·보안.
 - 라우터는 서비스만 호출한다(DB 직접 조회 금지). `persistence`는 `business`를 import하지 않는다.
 - 분석은 파이프-필터: `ValidationFilter → CleansingFilter → SentimentFilter → TopicFilter → PriorityFilter` (`business/pipeline/filters.py`). 필터는 `process(ctx)` 하나만 구현한다.
-- 외부 AI는 `infra/ai_client.py`의 `AIClient`로만 호출하고 타임아웃 5초. 실패하면 규칙 기반 분석(`analyzer=RULE`)·템플릿 답변(`is_ai_generated=False`)으로 대체한다 (NFR-03).
+- 외부 AI(Claude API, 공식 `anthropic` SDK, 기본 모델 `claude-haiku-5-5`로 비용 최소화)는 `infra/ai_client.py`의 `AIClient`로만 호출하고 타임아웃 5초·재시도 0회. 실패하면 규칙 기반 분석(`analyzer=RULE`)·템플릿 답변(`is_ai_generated=False`)으로 대체한다 (NFR-03).
+- AI 분석은 감정·주제를 한 번의 요청으로 받는다 (`LLMSentimentAnalyzer.analyze_full`, JSON 스키마 구조화 출력). AI 에 보내는 글은 `CleansingFilter`로 전화번호·이메일을 가린 것만 쓴다.
+- 테스트는 실제 API 를 부르지 않는다 (`tests/conftest.py`가 키를 비우고, Adapter 테스트는 가짜 SDK 클라이언트를 주입).
 - 업로드는 저장까지만 동기로 처리하고 분석은 `BackgroundTasks`로 넘긴다 (업로드 응답 1초, NFR-02).
 
 ## 패턴별 코드 위치
@@ -42,7 +44,7 @@ DB는 `backend/feedbackcare.db`(SQLite, 커밋 금지). 테이블 구조를 바�
 | Strategy | `business/response/strategies.py` | 답변 톤 `Apology/Guidance/ThanksStrategy`, `StrategySelector` |
 | Decorator | `business/priority/decorators.py` | `UrgentTagDecorator`(긴급), `VipTagDecorator`(VIP) |
 | State | `business/state/feedback_state.py` | `PendingState → InProgressState → DoneState`, 완료 후 재오픈 |
-| Adapter | `infra/ai_client.py` | `AIClient`, `ExternalLLMAdapter` (현재 스텁) |
+| Adapter | `infra/ai_client.py` | `AIClient`, `ExternalLLMAdapter` (Claude API) |
 
 새 분석기·규칙·톤·태그·상태는 기존 클래스를 고치지 않고 클래스를 추가한다.
 

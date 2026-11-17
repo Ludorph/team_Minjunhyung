@@ -1,0 +1,9 @@
+﻿id,case_type,content,gold_label,gold_intensity,gold_topics,note
+EX1,clear_positive,포장이 꼼꼼하고 상품 품질도 기대 이상이에요. 재구매할게요!,POSITIVE,,품질,칭찬이 중심이면 POSITIVE. 긍정은 강도를 비워도 돼요
+EX2,clear_negative,주문한 지 열흘이 지나도록 배송이 안 오고 문의해도 답이 없어요. 환불해 주세요.,NEGATIVE,0.7,배송;서비스,환불 요구+강한 불만 = 0.7. 주제는 가장 큰 원인(배송)을 맨 앞에
+EX3,clear_neutral,배송 일정이 언제쯤인지 알려 주세요.,NEUTRAL,,배송,감정 없이 문의만 있으면 NEUTRAL
+EX4,mixed,품질은 마음에 드는데 배송이 너무 늦어서 아쉬웠어요.,NEGATIVE,0.3,배송;품질,불만이 하나라도 있으면 NEGATIVE. 가벼운 아쉬움 = 0.3. 불만인 주제(배송)를 맨 앞에
+EX5,sarcasm,"참 빠르네요, 일주일 만에 도착했어요.",NEGATIVE,0.5,배송,표면 단어(빠르다)가 아니라 실제 의도(비꼼)로 판단
+EX6,negation,나쁘지 않아요. 가격 대비 괜찮은 편입니다.,NEUTRAL,,가격,'나쁘지 않다'처럼 만족 표현이 약하면 NEUTRAL
+EX7,informal,배송 개느림 ㅡㅡ 담부턴 안 시킬듯,NEGATIVE,0.7,배송,줄임말·기호도 의미로 판단. 이탈 암시가 있어 0.7
+EX8,long,상담원분은 정말 친절하게 설명해 주셨어요. 그런데 교환 신청한 지 2주가 지났는데도 새 상품이 오지 않습니다. 처음 받은 제품도 마감이 엉성했고요. 환불을 고려해야 할 것 같아요.,NEGATIVE,0.7,배송;품질;서비스,칭찬이 섞여도 조치가 필요한 불만이 있으면 NEGATIVE. 주제는 중요한 순서대로 ;로 나열

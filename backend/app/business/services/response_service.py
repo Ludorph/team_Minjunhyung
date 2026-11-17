@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 
 from app.business.pipeline.base import FeedbackContext
+from app.business.pipeline.filters import CleansingFilter
 from app.business.response.strategies import StrategySelector
 from app.business.services.analysis_service import AnalysisService
 from app.business.services.feedback_service import NotFoundError
@@ -25,8 +26,9 @@ class ResponseService:
         if fb.sentiment is None:  # 아직 분석 전이면 동기 분석
             AnalysisService(self.db, self.ai_client).analyze(feedback_id)
             self.db.refresh(fb)
-        ctx = FeedbackContext(feedback=fb, clean_text=fb.content, sentiment=fb.sentiment,
-                              topics=fb.topic_names, priority=fb.priority)
+        # AI 에 보내기 전에 전화번호·이메일을 가린다
+        ctx = CleansingFilter().process(FeedbackContext(feedback=fb, sentiment=fb.sentiment,
+                                                        topics=fb.topic_names, priority=fb.priority))
         chosen = self.selector.by_code(strategy) if strategy else self.selector.select(ctx.sentiment, ctx.topics)
         content = chosen.generate(fb, ctx)
         draft = self.drafts.add(ResponseDraft(feedback_id=fb.id, strategy=chosen.code, draft_content=content,

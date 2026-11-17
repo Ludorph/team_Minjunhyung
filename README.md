@@ -81,9 +81,11 @@ team_Minjunhyung/
   그 외 전이는 `InvalidTransitionError`(API 409). complete 는 확정된 답변 초안이 있어야 하며, 모든 전이는 `status_histories` 에 기록됩니다.
 - **CSV 업로드** (`POST /api/feedbacks/upload`): 확장자·인코딩·헤더(`customer_name,grade,source,written_at,content`) 오류 → 400 + 메시지.
   행 단위 오류(등급/출처/날짜/내용 누락)는 `error_rows` 로 집계하고 정상 행만 저장 → **202 + batch_id** 응답 후 `BackgroundTasks` 로 분석.
-- **AI 대체 경로**: `FEEDBACKCARE_AI_API_KEY` 가 없으면 `ExternalLLMAdapter` 가 `AIClientError` 를 던지고,
-  `SentimentFilter` 는 `RuleBasedSentimentAnalyzer`(한국어 감성 사전)로, `ResponseStrategy` 는 템플릿으로 대체합니다.
-  (키와 `FEEDBACKCARE_AI_ENDPOINT` 를 지정하면 `{"prompt"}` → `{"text"}` 형식의 HTTP 호출을 시도하는 스텁입니다.)
+- **생성형 AI (Claude API)**: `ExternalLLMAdapter`(Adapter)가 Anthropic 공식 Python SDK로 Claude를 호출합니다.
+  감정·주제는 한 번의 요청으로 구조화 출력(JSON 스키마)을 받아 판정하고(FR-02), 답변 초안은 톤별 지시로 생성합니다(FR-04).
+  AI 에 보내기 전에 전화번호·이메일을 가립니다. 우선순위 점수는 AI 가 아니라 산식(FR-03)으로 계산합니다.
+- **AI 대체 경로 (NFR-03)**: 키가 없거나 5초 타임아웃·요청 한도·거절·형식 오류가 나면 `AIClientError` 가 발생하고,
+  `SentimentFilter` 는 `RuleBasedSentimentAnalyzer`(한국어 감성 사전)+키워드 주제 분류로, `ResponseStrategy` 는 템플릿으로 대체합니다.
 - **시드** (앱 시작 시, 멱등): grade_weights, topics(품질·배송·가격·서비스·기타), 사용자 `agent1/agent1234`(AGENT), `admin1/admin1234`(ADMIN)
 
 > **인증은 과제용 스텁입니다.** 비밀번호는 `hashlib.sha256`(고정 salt)로 해시하고, 로그인 시 무작위 토큰을 서버 메모리에 보관합니다
@@ -120,7 +122,9 @@ uvicorn app.main:app --reload --port 8000   # http://127.0.0.1:8000/docs
 pytest                                       # 테스트
 ```
 DB 파일은 `backend/feedbackcare.db` 에 생성됩니다(삭제하면 초기화). 환경변수:
-`FEEDBACKCARE_DB_URL`, `FEEDBACKCARE_AI_API_KEY`, `FEEDBACKCARE_AI_ENDPOINT`, `FEEDBACKCARE_AI_TIMEOUT`(기본 5초).
+`FEEDBACKCARE_DB_URL`, `FEEDBACKCARE_AI_API_KEY`(Claude API 키), `FEEDBACKCARE_AI_MODEL`(기본 `claude-haiku-5-5`, 비용 최소화),
+`FEEDBACKCARE_AI_EFFORT`(기본 `low`), `FEEDBACKCARE_AI_TIMEOUT`(기본 5초).
+로컬에서는 `backend/.env.example` 을 프로젝트 최상위(또는 `backend/`)의 `.env` 로 복사해 키를 넣으면 됩니다 (`.env` 는 커밋 금지).
 
 ### Frontend (Node 18+)
 ```bash
@@ -148,7 +152,7 @@ npm run build    # dist/ 생성
 
 환경변수
 - `FEEDBACKCARE_DEMO_DATA=1`: DB가 비어 있으면 `data/sample_feedback.csv` 20건을 넣고 분석한다. 작성일은 적재 시각 기준 최근으로 옮겨 우선순위의 시간 가중치가 자연스럽게 나온다.
-- `FEEDBACKCARE_AI_API_KEY`: 생성형 AI 연동 후 배포 서비스 대시보드에서 직접 입력한다 (저장소에 넣지 않는다).
+- `FEEDBACKCARE_AI_API_KEY`: Claude API 키. Render 대시보드 → feedbackcare → Environment 에서 직접 입력한다 (저장소에 넣지 않는다). 비워 두면 규칙 기반·템플릿으로 동작한다.
 
 Render로 배포하는 순서
 1. https://render.com 에 GitHub 계정으로 가입·로그인한다.
