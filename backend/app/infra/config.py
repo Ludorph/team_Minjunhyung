@@ -20,6 +20,7 @@ class Settings:
     ai_model: str
     ai_effort: str  # Claude 사고 깊이 (low/medium/high). 5초 안에 답하도록 기본 low
     ai_timeout: float
+    analysis_workers: int  # 일괄 분석을 동시에 처리할 작업 수 (AI 응답 대기 시간을 겹치려는 용도, NFR-02)
     demo_data: bool  # 배포 시연용: DB가 비어 있으면 가상 피드백을 자동 적재
     frontend_dist: Path  # 빌드된 React 화면 폴더 (있으면 백엔드가 함께 제공)
     data_dir: Path
@@ -33,6 +34,7 @@ def get_settings() -> Settings:
         ai_model=os.getenv("FEEDBACKCARE_AI_MODEL", "claude-haiku-5-5"),
         ai_effort=os.getenv("FEEDBACKCARE_AI_EFFORT", "low"),
         ai_timeout=float(os.getenv("FEEDBACKCARE_AI_TIMEOUT", "5")),
+        analysis_workers=max(1, int(os.getenv("FEEDBACKCARE_ANALYSIS_WORKERS", "8"))),
         demo_data=os.getenv("FEEDBACKCARE_DEMO_DATA", "").lower() in ("1", "true", "yes"),
         frontend_dist=Path(os.getenv("FEEDBACKCARE_FRONTEND_DIST", str(BASE_DIR.parent / "frontend" / "dist"))),
         data_dir=BASE_DIR.parent / "data",

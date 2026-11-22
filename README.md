@@ -123,7 +123,7 @@ pytest                                       # 테스트
 ```
 DB 파일은 `backend/feedbackcare.db` 에 생성됩니다(삭제하면 초기화). 환경변수:
 `FEEDBACKCARE_DB_URL`, `FEEDBACKCARE_AI_API_KEY`(Claude API 키), `FEEDBACKCARE_AI_MODEL`(기본 `claude-haiku-5-5`, 비용 최소화),
-`FEEDBACKCARE_AI_EFFORT`(기본 `low`), `FEEDBACKCARE_AI_TIMEOUT`(기본 5초).
+`FEEDBACKCARE_AI_EFFORT`(기본 `low`), `FEEDBACKCARE_AI_TIMEOUT`(기본 5초), `FEEDBACKCARE_ANALYSIS_WORKERS`(일괄 분석 동시 작업 수, 기본 8).
 로컬에서는 `backend/.env.example` 을 프로젝트 최상위(또는 `backend/`)의 `.env` 로 복사해 키를 넣으면 됩니다 (`.env` 는 커밋 금지).
 
 ### Frontend (Node 18+)

@@ -1,5 +1,6 @@
 """분석 서비스: 파이프라인을 조립·실행하고 결과를 저장한다 (UC-02, UC-03)."""
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,7 @@ from app.business.pipeline.filters import (
 )
 from app.business.priority.calculator import PriorityCalculator
 from app.infra.ai_client import AIClient, ExternalLLMAdapter
+from app.infra.config import get_settings
 from app.persistence.database import SessionLocal
 from app.persistence.models import Feedback, FeedbackTopic
 from app.persistence.repositories import FeedbackRepository, GradeWeightRepository, TopicRepository
@@ -73,8 +75,23 @@ class AnalysisService:
                 fb.topic_links.append(FeedbackTopic(topic=topic, topic_id=topic.id, score=score))
 
 
-def run_analysis_task(feedback_ids: list[int]) -> None:
-    """FastAPI BackgroundTasks 진입점: 요청과 별도 세션으로 실행한다."""
+def _analyze_chunk(feedback_ids: list[int], ai_client: AIClient | None) -> int:
+    """작업 하나가 자기 DB 세션으로 담당 구간을 순서대로 분석한다 (세션은 스레드 간에 공유하지 않는다)."""
     with SessionLocal() as db:
-        n = AnalysisService(db).analyze_many(feedback_ids)
-        log.info("백그라운드 분석 완료: %d/%d", n, len(feedback_ids))
+        return AnalysisService(db, ai_client).analyze_many(feedback_ids)
+
+
+def run_analysis_task(feedback_ids: list[int], ai_client: AIClient | None = None) -> None:
+    """FastAPI BackgroundTasks 진입점: 요청과 별도 세션으로 실행한다.
+
+    AI 응답을 기다리는 시간이 건당 1~2초라 순서대로 처리하면 500건에 10분이 넘는다(NFR-02: 5분).
+    그래서 여러 작업이 구간을 나눠 동시에 처리해 대기 시간을 겹친다. 실패는 건별로 규칙 기반으로 대체된다.
+    """
+    workers = min(get_settings().analysis_workers, len(feedback_ids))
+    if workers <= 1:
+        done = _analyze_chunk(feedback_ids, ai_client)
+    else:
+        chunks = [feedback_ids[i::workers] for i in range(workers)]
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            done = sum(pool.map(lambda c: _analyze_chunk(c, ai_client), chunks))
+    log.info("백그라운드 분석 완료: %d/%d (작업 %d개)", done, len(feedback_ids), max(workers, 1))

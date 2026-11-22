@@ -32,7 +32,7 @@ DB는 `backend/feedbackcare.db`(SQLite, 커밋 금지). 테이블 구조를 바�
 - 외부 AI(Claude API, 공식 `anthropic` SDK, 기본 모델 `claude-haiku-5-5`로 비용 최소화)는 `infra/ai_client.py`의 `AIClient`로만 호출하고 타임아웃 5초·재시도 0회. 실패하면 규칙 기반 분석(`analyzer=RULE`)·템플릿 답변(`is_ai_generated=False`)으로 대체한다 (NFR-03).
 - AI 분석은 감정·주제를 한 번의 요청으로 받는다 (`LLMSentimentAnalyzer.analyze_full`, JSON 스키마 구조화 출력). AI 에 보내는 글은 `CleansingFilter`로 전화번호·이메일을 가린 것만 쓴다.
 - 테스트는 실제 API 를 부르지 않는다 (`tests/conftest.py`가 키를 비우고, Adapter 테스트는 가짜 SDK 클라이언트를 주입).
-- 업로드는 저장까지만 동기로 처리하고 분석은 `BackgroundTasks`로 넘긴다 (업로드 응답 1초, NFR-02).
+- 업로드는 저장까지만 동기로 처리하고 분석은 `BackgroundTasks`로 넘긴다 (업로드 응답 1초, NFR-02). 분석은 작업 여러 개(`FEEDBACKCARE_ANALYSIS_WORKERS`, 기본 8)가 구간을 나눠 동시에 처리하며 작업마다 자기 DB 세션을 쓴다 (`run_analysis_task`).
 
 ## 패턴별 코드 위치
 
